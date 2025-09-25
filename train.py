@@ -120,8 +120,8 @@ def main():
     print("Loading TinyStories dataset...")
     dataset = load_dataset("roneneldan/TinyStories", split="train")
 
-    # Take first 10K stories for initial training
-    subset_size = 8192
+    # Take first 64K stories for initial training
+    subset_size = 65536
     stories = [story["text"] for story in dataset.select(range(subset_size))] # type: ignore
     print(f"Loaded {len(stories)} stories from TinyStories dataset")
 
