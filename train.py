@@ -67,8 +67,8 @@ def main():
     # Tokenizer setup
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
     tokenizer.pad_token = tokenizer.eos_token
-    vocab_size = min(len(tokenizer.get_vocab()), 10000)  # Truncate to 10K as per paper
-    print(f"Tokenizer vocab size: {len(tokenizer.get_vocab())}, using: {vocab_size}")
+    vocab_size = len(tokenizer.get_vocab())  # Use full vocabulary
+    print(f"Using full tokenizer vocab size: {vocab_size}")
 
     # Model setup (from TINYSTORIES_RECIPE.md)
     model = Transformer(

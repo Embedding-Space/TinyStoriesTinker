@@ -13,3 +13,5 @@ wheels/
 .venv
 
 2305.07759.pdf
+
+*.safetensors
