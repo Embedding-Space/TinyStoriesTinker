@@ -26,11 +26,11 @@ class StoryDataset(Dataset):
         # Input: all tokens except last, Target: all tokens except first
         return tokens[:-1], tokens[1:]
 
-def collate_fn(batch):
+def collate_fn(batch, pad_token_id):
     inputs, targets = zip(*batch)
-    # Pad sequences to same length in batch
-    inputs = nn.utils.rnn.pad_sequence(inputs, batch_first=True, padding_value=0)
-    targets = nn.utils.rnn.pad_sequence(targets, batch_first=True, padding_value=0)
+    # Pad sequences to same length in batch using consistent padding token
+    inputs = nn.utils.rnn.pad_sequence(inputs, batch_first=True, padding_value=pad_token_id)
+    targets = nn.utils.rnn.pad_sequence(targets, batch_first=True, padding_value=pad_token_id)
     return inputs, targets
 
 def train_epoch(model, dataloader, optimizer, device, tokenizer):
@@ -92,7 +92,9 @@ def main():
 
     # Dataset and dataloader
     dataset = StoryDataset(dummy_stories, tokenizer)
-    dataloader = DataLoader(dataset, batch_size=512, shuffle=True, collate_fn=collate_fn)
+    # Create collate_fn with consistent padding token
+    collate_with_padding = lambda batch: collate_fn(batch, pad_token_id=tokenizer.pad_token_id)
+    dataloader = DataLoader(dataset, batch_size=512, shuffle=True, collate_fn=collate_with_padding)
 
     # Optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
