@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from transformers import GPT2Tokenizer
 from transformer import Transformer
 from safetensors.torch import save_file, load_file
@@ -48,7 +48,7 @@ def train_epoch(model, dataloader, optimizer, device, tokenizer, scaler):
         optimizer.zero_grad()
 
         # Use mixed precision for forward pass
-        with autocast():
+        with autocast(device.type):
             outputs = model(inputs)
 
             # Reshape for cross entropy: (batch_size * seq_len, vocab_size)
@@ -125,7 +125,7 @@ def main():
 
     # Optimizer and mixed precision scaler
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
-    scaler = GradScaler()
+    scaler = GradScaler(device.type)
 
     # Check for existing checkpoint
     checkpoint_dir = "checkpoints"
