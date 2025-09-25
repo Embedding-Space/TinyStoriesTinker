@@ -94,7 +94,6 @@ def main():
     else:
         device = torch.device("cpu")
         print("Using CPU")
-    print(f"Using device: {device}")
 
     # Tokenizer setup
     tokenizer = GPT2Tokenizer.from_pretrained('./gpt2-tokenizer-10k')
@@ -174,48 +173,53 @@ def main():
 
         print(f"Resuming from epoch {start_epoch}, best loss: {best_loss:.4f}")
 
-    # Training loop
-    num_epochs = 10  # Increased since we can now resume safely
-    for epoch in range(start_epoch, num_epochs):
-        print(f"\nEpoch {epoch+1}/{num_epochs}")
-        start_time = time.time()
+    # Training loop - run indefinitely until Ctrl-C
+    epoch = start_epoch
+    try:
+        while True:
+            print(f"\nEpoch {epoch+1}")
+            start_time = time.time()
 
-        avg_loss = train_epoch(model, dataloader, optimizer, device, tokenizer)
+            avg_loss = train_epoch(model, dataloader, optimizer, device, tokenizer)
 
-        epoch_time = time.time() - start_time
-        print(f"Epoch {epoch+1} completed in {epoch_time:.2f}s, Average Loss: {avg_loss:.4f}")
+            epoch_time = time.time() - start_time
+            print(f"Epoch {epoch+1} completed in {epoch_time:.2f}s, Average Loss: {avg_loss:.4f}")
 
-        # Save checkpoint after each epoch
-        checkpoint_path = os.path.join(checkpoint_dir, f'checkpoint_epoch_{epoch}.safetensors')
-        save_file(model.state_dict(), checkpoint_path)
+            # Save checkpoint after each epoch
+            checkpoint_path = os.path.join(checkpoint_dir, f'checkpoint_epoch_{epoch}.safetensors')
+            save_file(model.state_dict(), checkpoint_path)
 
-        # Save training metadata
-        metadata = {
-            'epoch': epoch,
-            'loss': avg_loss,
-            'best_loss': min(best_loss, avg_loss),
-            'model_config': {
-                'vocab_size': vocab_size,
-                'd_model': 128,
-                'n_heads': 2,
-                'n_layers': 8,
-                'd_ff': 512,
-                'max_seq_len': 512
+            # Save training metadata
+            metadata = {
+                'epoch': epoch,
+                'loss': avg_loss,
+                'best_loss': min(best_loss, avg_loss),
+                'model_config': {
+                    'vocab_size': vocab_size,
+                    'd_model': 128,
+                    'n_heads': 2,
+                    'n_layers': 8,
+                    'd_ff': 512,
+                    'max_seq_len': 512
+                }
             }
-        }
 
-        metadata_path = checkpoint_path.replace('.safetensors', '_metadata.json')
-        with open(metadata_path, 'w') as f:
-            json.dump(metadata, f, indent=2)
+            metadata_path = checkpoint_path.replace('.safetensors', '_metadata.json')
+            with open(metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
 
-        # Save optimizer state
-        optimizer_path = checkpoint_path.replace('.safetensors', '_optimizer.pt')
-        torch.save(optimizer.state_dict(), optimizer_path)
+            # Save optimizer state
+            optimizer_path = checkpoint_path.replace('.safetensors', '_optimizer.pt')
+            torch.save(optimizer.state_dict(), optimizer_path)
 
-        print(f"Checkpoint saved: {checkpoint_path}")
+            print(f"Checkpoint saved: {checkpoint_path}")
 
-        # Update best loss
-        best_loss = min(best_loss, avg_loss)
+            # Update best loss
+            best_loss = min(best_loss, avg_loss)
+            epoch += 1
+
+    except KeyboardInterrupt:
+        print(f"\nTraining interrupted at epoch {epoch}. Model saved to latest checkpoint.")
 
     # Save final model
     save_file(model.state_dict(), 'tinystories_model_final.safetensors')
