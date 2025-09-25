@@ -36,16 +36,15 @@ def collate_fn(batch, pad_token_id):
     targets = nn.utils.rnn.pad_sequence(targets, batch_first=True, padding_value=pad_token_id)  # type: ignore
     return inputs, targets
 
-def train_epoch(model, dataloader, optimizer, device, tokenizer, accumulation_steps=16):
+def train_epoch(model, dataloader, optimizer, device, tokenizer):
     model.train()
     total_loss = 0
     num_batches = len(dataloader)
-    accumulated_loss = 0
-
-    optimizer.zero_grad()  # Initialize gradients
 
     for batch_idx, (inputs, targets) in enumerate(dataloader):
         inputs, targets = inputs.to(device), targets.to(device)
+
+        optimizer.zero_grad()
 
         outputs = model(inputs)
 
@@ -54,32 +53,15 @@ def train_epoch(model, dataloader, optimizer, device, tokenizer, accumulation_st
         targets = targets.view(-1)
 
         loss = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)(outputs, targets)
+        loss.backward()
 
-        # Scale loss by accumulation steps to maintain same magnitude
-        scaled_loss = loss / accumulation_steps
-        scaled_loss.backward()
-
-        accumulated_loss += loss.item()
-
-        # Update weights every accumulation_steps batches
-        if (batch_idx + 1) % accumulation_steps == 0:
-            optimizer.step()
-            optimizer.zero_grad()
-
-            avg_accumulated_loss = accumulated_loss / accumulation_steps
-            if batch_idx % (accumulation_steps * 5) == (accumulation_steps - 1):  # Print every 5 accumulation cycles
-                effective_batch = (batch_idx + 1) // accumulation_steps
-                total_effective_batches = (num_batches + accumulation_steps - 1) // accumulation_steps
-                print(f"Effective batch {effective_batch}/{total_effective_batches}, Loss: {avg_accumulated_loss:.4f}")
-
-            total_loss += accumulated_loss
-            accumulated_loss = 0
-
-    # Handle remaining batches if num_batches not divisible by accumulation_steps
-    if accumulated_loss > 0:
         optimizer.step()
-        optimizer.zero_grad()
-        total_loss += accumulated_loss
+
+        total_loss += loss.item()
+
+        # Print progress every 16 batches
+        if (batch_idx + 1) % 16 == 0:
+            print(f"Batch {batch_idx + 1}/{num_batches}, Loss: {loss.item():.4f}")
 
     return total_loss / num_batches
 
