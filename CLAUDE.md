@@ -25,3 +25,6 @@ The journey matters more than the destination.
 - Use `uv` exclusively to manage Python packages and to run scripts.
 - Don't add any code comments unless specifically asked. Part of the exercise will be for Jeffery to go through the code and understand it by adding his own comments.
 - Our dev environment is a MacBook Pro M4 Pro with 48 GB of unified memory. Make sure we hardware-accelerate everything, and don't sweat about memory usage.
+
+## More Context
+@TINYSTORIES_RECIPE.md
