@@ -66,9 +66,11 @@ def main():
 
     # Tokenizer setup
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    tokenizer.pad_token = tokenizer.eos_token
-    vocab_size = len(tokenizer.get_vocab())  # Use full vocabulary
-    print(f"Using full tokenizer vocab size: {vocab_size}")
+    # Add a distinct pad token so EOS remains in the loss
+    tokenizer.add_special_tokens({"pad_token": "<|pad|>"})
+    vocab_size = len(tokenizer.get_vocab())  # Use vocabulary including new pad token
+    print(f"Using tokenizer vocab size: {vocab_size} (includes new pad token)")
+    print(f"EOS token ID: {tokenizer.eos_token_id}, PAD token ID: {tokenizer.pad_token_id}")
 
     # Model setup (from TINYSTORIES_RECIPE.md)
     model = Transformer(
