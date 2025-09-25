@@ -1,0 +1,14 @@
+[project]
+name = "tinystoriestinker"
+version = "0.1.0"
+description = "Educational transformer implementation - learning how GPT works by building a tiny story generator"
+readme = "README.md"
+requires-python = "==3.11.*"
+dependencies = [
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+    "datasets>=2.14.0",
+    "numpy>=1.24.0",
+    "matplotlib>=3.7.0",
+    "tqdm>=4.65.0",
+]
