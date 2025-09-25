@@ -48,7 +48,7 @@ def train_epoch(model, dataloader, optimizer, device):
         outputs = outputs.view(-1, outputs.size(-1))
         targets = targets.view(-1)
 
-        loss = nn.CrossEntropyLoss(ignore_index=0)(outputs, targets)  # Ignore padding
+        loss = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)(outputs, targets)  # Ignore padding
         loss.backward()
         optimizer.step()
 
