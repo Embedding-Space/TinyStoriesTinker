@@ -59,8 +59,8 @@ def train_epoch(model, dataloader, optimizer, device, tokenizer):
 
         total_loss += loss.item()
 
-        # Print progress every 16 batches
-        if (batch_idx + 1) % 16 == 0:
+        # Print progress every 64 batches
+        if (batch_idx + 1) % 64 == 0:
             print(f"Batch {batch_idx + 1}/{num_batches}, Loss: {loss.item():.4f}")
 
     return total_loss / num_batches
