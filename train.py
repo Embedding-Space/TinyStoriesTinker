@@ -94,7 +94,7 @@ def main():
     dataset = StoryDataset(dummy_stories, tokenizer)
     # Create collate_fn with consistent padding token
     collate_with_padding = lambda batch: collate_fn(batch, pad_token_id=tokenizer.pad_token_id)
-    dataloader = DataLoader(dataset, batch_size=512, shuffle=True, collate_fn=collate_with_padding)
+    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, collate_fn=collate_with_padding)
 
     # Optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
