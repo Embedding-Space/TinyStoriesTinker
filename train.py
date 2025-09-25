@@ -29,8 +29,8 @@ class StoryDataset(Dataset):
 def collate_fn(batch, pad_token_id):
     inputs, targets = zip(*batch)
     # Pad sequences to same length in batch using consistent padding token
-    inputs = nn.utils.rnn.pad_sequence(inputs, batch_first=True, padding_value=pad_token_id)
-    targets = nn.utils.rnn.pad_sequence(targets, batch_first=True, padding_value=pad_token_id)
+    inputs = nn.utils.rnn.pad_sequence(inputs, batch_first=True, padding_value=pad_token_id)  # type: ignore
+    targets = nn.utils.rnn.pad_sequence(targets, batch_first=True, padding_value=pad_token_id)  # type: ignore
     return inputs, targets
 
 def train_epoch(model, dataloader, optimizer, device, tokenizer):
