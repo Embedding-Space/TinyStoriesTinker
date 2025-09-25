@@ -33,7 +33,7 @@ def collate_fn(batch):
     targets = nn.utils.rnn.pad_sequence(targets, batch_first=True, padding_value=0)
     return inputs, targets
 
-def train_epoch(model, dataloader, optimizer, device):
+def train_epoch(model, dataloader, optimizer, device, tokenizer):
     model.train()
     total_loss = 0
     num_batches = len(dataloader)
@@ -67,7 +67,8 @@ def main():
     # Tokenizer setup
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
     tokenizer.pad_token = tokenizer.eos_token
-    vocab_size = min(len(tokenizer.vocab), 10000)  # Truncate to 10K as per paper
+    vocab_size = min(len(tokenizer.get_vocab()), 10000)  # Truncate to 10K as per paper
+    print(f"Tokenizer vocab size: {len(tokenizer.get_vocab())}, using: {vocab_size}")
 
     # Model setup (from TINYSTORIES_RECIPE.md)
     model = Transformer(
@@ -102,7 +103,7 @@ def main():
         print(f"\nEpoch {epoch+1}/{num_epochs}")
         start_time = time.time()
 
-        avg_loss = train_epoch(model, dataloader, optimizer, device)
+        avg_loss = train_epoch(model, dataloader, optimizer, device, tokenizer)
 
         epoch_time = time.time() - start_time
         print(f"Epoch {epoch+1} completed in {epoch_time:.2f}s, Average Loss: {avg_loss:.4f}")
