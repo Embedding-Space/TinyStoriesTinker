@@ -36,29 +36,50 @@ def collate_fn(batch, pad_token_id):
     targets = nn.utils.rnn.pad_sequence(targets, batch_first=True, padding_value=pad_token_id)  # type: ignore
     return inputs, targets
 
-def train_epoch(model, dataloader, optimizer, device, tokenizer):
+def train_epoch(model, dataloader, optimizer, device, tokenizer, accumulation_steps=16):
     model.train()
     total_loss = 0
     num_batches = len(dataloader)
+    accumulated_loss = 0
+
+    optimizer.zero_grad()  # Initialize gradients
 
     for batch_idx, (inputs, targets) in enumerate(dataloader):
         inputs, targets = inputs.to(device), targets.to(device)
 
-        optimizer.zero_grad()
         outputs = model(inputs)
 
         # Reshape for cross entropy: (batch_size * seq_len, vocab_size)
         outputs = outputs.view(-1, outputs.size(-1))
         targets = targets.view(-1)
 
-        loss = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)(outputs, targets)  # Ignore padding
-        loss.backward()
+        loss = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)(outputs, targets)
+
+        # Scale loss by accumulation steps to maintain same magnitude
+        scaled_loss = loss / accumulation_steps
+        scaled_loss.backward()
+
+        accumulated_loss += loss.item()
+
+        # Update weights every accumulation_steps batches
+        if (batch_idx + 1) % accumulation_steps == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+
+            avg_accumulated_loss = accumulated_loss / accumulation_steps
+            if batch_idx % (accumulation_steps * 5) == (accumulation_steps - 1):  # Print every 5 accumulation cycles
+                effective_batch = (batch_idx + 1) // accumulation_steps
+                total_effective_batches = (num_batches + accumulation_steps - 1) // accumulation_steps
+                print(f"Effective batch {effective_batch}/{total_effective_batches}, Loss: {avg_accumulated_loss:.4f}")
+
+            total_loss += accumulated_loss
+            accumulated_loss = 0
+
+    # Handle remaining batches if num_batches not divisible by accumulation_steps
+    if accumulated_loss > 0:
         optimizer.step()
-
-        total_loss += loss.item()
-
-        if batch_idx % 10 == 0:
-            print(f"Batch {batch_idx}/{num_batches}, Loss: {loss.item():.4f}")
+        optimizer.zero_grad()
+        total_loss += accumulated_loss
 
     return total_loss / num_batches
 
@@ -93,7 +114,7 @@ def main():
     dataset = load_dataset("roneneldan/TinyStories", split="train")
 
     # Take first 10K stories for initial training
-    subset_size = 10000
+    subset_size = 8192
     stories = [story["text"] for story in dataset.select(range(subset_size))]
     print(f"Loaded {len(stories)} stories from TinyStories dataset")
 

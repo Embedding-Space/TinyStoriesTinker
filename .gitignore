@@ -15,3 +15,4 @@ wheels/
 2305.07759.pdf
 
 *.safetensors
+checkpoints/
