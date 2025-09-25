@@ -134,7 +134,7 @@ def main():
     story_dataset = StoryDataset(stories, tokenizer)
     # Create collate_fn with consistent padding token
     collate_with_padding = lambda batch: collate_fn(batch, pad_token_id=tokenizer.pad_token_id)
-    dataloader = DataLoader(story_dataset, batch_size=32, shuffle=True, collate_fn=collate_with_padding)
+    dataloader = DataLoader(story_dataset, batch_size=16, shuffle=True, collate_fn=collate_with_padding)
 
     # Optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
@@ -149,7 +149,8 @@ def main():
     # Find latest checkpoint
     checkpoint_files = [f for f in os.listdir(checkpoint_dir) if f.startswith('checkpoint_epoch_') and f.endswith('.safetensors')]
     if checkpoint_files:
-        latest_checkpoint = sorted(checkpoint_files)[-1]
+        # Sort by epoch number, not alphabetically
+        latest_checkpoint = sorted(checkpoint_files, key=lambda x: int(x.split('_')[-1].split('.')[0]))[-1]
         checkpoint_path = os.path.join(checkpoint_dir, latest_checkpoint)
 
         print(f"Found checkpoint: {latest_checkpoint}")
