@@ -89,7 +89,7 @@ def main():
     print(f"Using device: {device}")
 
     # Tokenizer setup
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    tokenizer = GPT2Tokenizer.from_pretrained('./gpt2-tokenizer-10k')
     # Add a distinct pad token so EOS remains in the loss
     tokenizer.add_special_tokens({"pad_token": "<|pad|>"})
     vocab_size = len(tokenizer.get_vocab())  # Use vocabulary including new pad token
@@ -115,7 +115,7 @@ def main():
 
     # Take first 10K stories for initial training
     subset_size = 8192
-    stories = [story["text"] for story in dataset.select(range(subset_size))]
+    stories = [story["text"] for story in dataset.select(range(subset_size))] # type: ignore
     print(f"Loaded {len(stories)} stories from TinyStories dataset")
 
     # Show a sample story
@@ -127,7 +127,7 @@ def main():
     story_dataset = StoryDataset(stories, tokenizer)
     # Create collate_fn with consistent padding token
     collate_with_padding = lambda batch: collate_fn(batch, pad_token_id=tokenizer.pad_token_id)
-    dataloader = DataLoader(story_dataset, batch_size=4, shuffle=True, collate_fn=collate_with_padding)
+    dataloader = DataLoader(story_dataset, batch_size=16, shuffle=True, collate_fn=collate_with_padding)
 
     # Optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
