@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 from transformers import GPT2Tokenizer
 from transformer import Transformer
+from safetensors.torch import save_file
 import math
 import time
 
@@ -107,8 +108,8 @@ def main():
         print(f"Epoch {epoch+1} completed in {epoch_time:.2f}s, Average Loss: {avg_loss:.4f}")
 
     # Save model
-    torch.save(model.state_dict(), 'tinystories_model.pt')
-    print("Model saved!")
+    save_file(model.state_dict(), 'tinystories_model.safetensors')
+    print("Model saved in safetensors format!")
 
 if __name__ == "__main__":
     main()
