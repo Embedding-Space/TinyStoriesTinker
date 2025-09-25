@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
+from torch.cuda.amp import GradScaler, autocast
 from transformers import GPT2Tokenizer
 from transformer import Transformer
 from safetensors.torch import save_file, load_file
@@ -36,7 +37,7 @@ def collate_fn(batch, pad_token_id):
     targets = nn.utils.rnn.pad_sequence(targets, batch_first=True, padding_value=pad_token_id)  # type: ignore
     return inputs, targets
 
-def train_epoch(model, dataloader, optimizer, device, tokenizer):
+def train_epoch(model, dataloader, optimizer, device, tokenizer, scaler):
     model.train()
     total_loss = 0
     num_batches = len(dataloader)
@@ -46,16 +47,20 @@ def train_epoch(model, dataloader, optimizer, device, tokenizer):
 
         optimizer.zero_grad()
 
-        outputs = model(inputs)
+        # Use mixed precision for forward pass
+        with autocast():
+            outputs = model(inputs)
 
-        # Reshape for cross entropy: (batch_size * seq_len, vocab_size)
-        outputs = outputs.view(-1, outputs.size(-1))
-        targets = targets.view(-1)
+            # Reshape for cross entropy: (batch_size * seq_len, vocab_size)
+            outputs = outputs.view(-1, outputs.size(-1))
+            targets = targets.view(-1)
 
-        loss = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)(outputs, targets)
-        loss.backward()
+            loss = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)(outputs, targets)
 
-        optimizer.step()
+        # Scaled backward pass for mixed precision
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
 
         total_loss += loss.item()
 
@@ -118,8 +123,9 @@ def main():
     collate_with_padding = lambda batch: collate_fn(batch, pad_token_id=tokenizer.pad_token_id)
     dataloader = DataLoader(story_dataset, batch_size=16, shuffle=True, collate_fn=collate_with_padding)
 
-    # Optimizer
+    # Optimizer and mixed precision scaler
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+    scaler = GradScaler()
 
     # Check for existing checkpoint
     checkpoint_dir = "checkpoints"
@@ -163,7 +169,7 @@ def main():
             print(f"\nEpoch {epoch+1}")
             start_time = time.time()
 
-            avg_loss = train_epoch(model, dataloader, optimizer, device, tokenizer)
+            avg_loss = train_epoch(model, dataloader, optimizer, device, tokenizer, scaler)
 
             epoch_time = time.time() - start_time
             print(f"Epoch {epoch+1} completed in {epoch_time:.2f}s, Average Loss: {avg_loss:.4f}")
