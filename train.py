@@ -54,7 +54,7 @@ def main():
         logging_steps=50,
         save_strategy="epoch",       # Save after each epoch
         save_total_limit=5,          # Keep only last 5 checkpoints
-        resume_from_checkpoint=True, # Auto-resume from latest checkpoint
+        # resume_from_checkpoint will be handled automatically by Trainer
         report_to=[],
     )
 

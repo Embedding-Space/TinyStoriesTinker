@@ -16,3 +16,4 @@ wheels/
 
 gpt2-tokenizer-10k/
 checkpoints*/
+tinystories_trainer_model/
