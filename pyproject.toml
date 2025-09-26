@@ -12,4 +12,5 @@ dependencies = [
     "matplotlib>=3.7.0",
     "tqdm>=4.65.0",
     "safetensors>=0.6.2",
+    "accelerate>=0.26.0",
 ]

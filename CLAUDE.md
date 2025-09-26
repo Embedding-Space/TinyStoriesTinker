@@ -7,12 +7,15 @@ Learn how transformers work by building the simplest working story generator we 
 The **TinyStories** paper (Eldan & Li, 2023) showed that tiny transformer models (1-33M parameters) can generate coherent multi-paragraph stories when trained on a carefully crafted dataset of simple vocabulary stories. They proved that "emergence" of language capabilities doesn't require massive scale - just good data and architecture.
 
 ## Our Plan
-1. **Import tokenizer**: Use GPT-2's tokenizer (truncated to 10K vocab) - this is boring infrastructure
-2. **Implement transformer architecture**: Build GPT-Neo style decoder blocks from scratch in PyTorch - this is the educational core
-3. **Target architecture**: ~2.5M parameters (128 hidden dim, 8 layers, 2 attention heads)
-4. **Write training loop**: Raw PyTorch, no `Trainer` complexity - we want to see every step
-5. **Train on TinyStories dataset**: Available on Hugging Face
-6. **Test story generation**: Watch our tiny model write coherent narratives
+- [x] **Import tokenizer**: Use GPT-2's tokenizer (truncated to 10K vocab) - this is boring infrastructure
+- [x] **Implement transformer architecture**: Build GPT-Neo style decoder blocks from scratch in PyTorch - this is the educational core
+- [x] **Target architecture**: ~2.5M parameters (128 hidden dim, 8 layers, 2 attention heads)
+- [x] **Write training loop**: Raw PyTorch, no `Trainer` complexity - we want to see every step
+- [x] **Train on TinyStories dataset**: Available on Hugging Face
+- [x] **Test story generation**: Watch our tiny model write coherent narratives
+
+## Our Plan Part II
+- [ ] **This time for real**: Reimplement the same model (ended up being 4M parameters) using Hugging Face's `transformers` library for cleaner code and easier experimentation
 
 ## Learning Philosophy
 **Go slow and teach.** This is pedagogical exploration, not problem-solving. The human wants to understand transformer mechanics deeply - attention head specialization, embedding spaces, autoregressive generation, etc. 

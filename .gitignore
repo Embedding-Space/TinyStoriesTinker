@@ -15,4 +15,4 @@ wheels/
 2305.07759.pdf
 
 gpt2-tokenizer-10k/
-checkpoints/
+checkpoints*/
