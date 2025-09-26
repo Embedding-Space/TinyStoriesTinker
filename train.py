@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
-from torch.amp import GradScaler, autocast
+from torch.amp import autocast # type: ignore
 from transformers import GPT2Tokenizer
 from transformer import Transformer
 from safetensors.torch import save_file, load_file
@@ -37,7 +37,7 @@ def collate_fn(batch, pad_token_id):
     targets = nn.utils.rnn.pad_sequence(targets, batch_first=True, padding_value=pad_token_id)  # type: ignore
     return inputs, targets
 
-def train_epoch(model, dataloader, optimizer, device, tokenizer, scaler):
+def train_epoch(model, dataloader, optimizer, device, tokenizer):
     model.train()
     total_loss = 0
     num_batches = len(dataloader)
@@ -47,8 +47,9 @@ def train_epoch(model, dataloader, optimizer, device, tokenizer, scaler):
 
         optimizer.zero_grad()
 
-        # Use mixed precision for forward pass
-        with autocast(device.type):
+        # Use mixed precision forward pass with bfloat16 when supported
+        autocast_dtype = torch.bfloat16 if device.type in ("cuda", "cpu") else torch.float16
+        with autocast(device_type=device.type, dtype=autocast_dtype):
             outputs = model(inputs)
 
             # Reshape for cross entropy: (batch_size * seq_len, vocab_size)
@@ -57,10 +58,9 @@ def train_epoch(model, dataloader, optimizer, device, tokenizer, scaler):
 
             loss = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)(outputs, targets)
 
-        # Scaled backward pass for mixed precision
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
+        # Standard backward pass without gradient scaling (bf16)
+        loss.backward()
+        optimizer.step()
 
         total_loss += loss.item()
 
@@ -125,7 +125,6 @@ def main():
 
     # Optimizer and mixed precision scaler
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
-    scaler = GradScaler(device.type)
 
     # Check for existing checkpoint
     checkpoint_dir = "checkpoints"
@@ -169,7 +168,7 @@ def main():
             print(f"\nEpoch {epoch+1}")
             start_time = time.time()
 
-            avg_loss = train_epoch(model, dataloader, optimizer, device, tokenizer, scaler)
+            avg_loss = train_epoch(model, dataloader, optimizer, device, tokenizer)
 
             epoch_time = time.time() - start_time
             print(f"Epoch {epoch+1} completed in {epoch_time:.2f}s, Average Loss: {avg_loss:.4f}")
