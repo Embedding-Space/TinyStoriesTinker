@@ -16,12 +16,13 @@ from transformer import Transformer
 from safetensors.torch import load_file
 import json
 import os
+import textwrap
 
 def load_model_and_tokenizer(model_path):
     """Load model and tokenizer from safetensors checkpoint."""
 
-    # Set up tokenizer (same as training)
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    # Set up tokenizer (same as training - use truncated tokenizer)
+    tokenizer = GPT2Tokenizer.from_pretrained('./gpt2-tokenizer-10k')
     tokenizer.add_special_tokens({"pad_token": "<|pad|>"})
 
     # Load model weights
@@ -36,9 +37,9 @@ def load_model_and_tokenizer(model_path):
             config = metadata.get('model_config', {})
             print(f"Found model config in metadata: {config}")
     else:
-        # Fallback to default config
+        # Fallback to default config (updated for truncated tokenizer)
         config = {
-            'vocab_size': 50258,  # Original + pad token
+            'vocab_size': 9958,  # Truncated tokenizer + pad token
             'd_model': 128,
             'n_heads': 2,
             'n_layers': 8,
@@ -116,10 +117,13 @@ def generate_story(model, tokenizer, prompt, max_length=200, temperature=0.8):
         # Decode the full generated sequence
         generated_text = tokenizer.decode(generated_ids, skip_special_tokens=True)
 
-        # Print the generated story
-        print(generated_text)
-        print("=" * 50)
-        print(f"Generated {len(generated_text)} characters")
+        # Format the output with nice word wrapping
+        wrapped_text = textwrap.fill(generated_text, width=70, break_long_words=False, break_on_hyphens=False)
+
+        # Print the generated story with nice formatting
+        print(wrapped_text)
+        print("=" * 70)
+        print(f"Generated {len(generated_text)} characters ({len(generated_text.split())} words)")
 
         return generated_text
 
