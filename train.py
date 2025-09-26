@@ -11,27 +11,9 @@ import time
 import os
 import json
 
-class StoryDataset(Dataset):
-    def __init__(self, stories, tokenizer, max_length=512):
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-        self.examples = []
-
-        for story in stories:
-            tokens = tokenizer.encode(story, truncation=True, max_length=max_length)
-            if len(tokens) > 1:  # Need at least 2 tokens for input/target pairs
-                self.examples.append(torch.tensor(tokens, dtype=torch.long))
-
-    def __len__(self):
-        return len(self.examples)
-
-    def __getitem__(self, idx):
-        tokens = self.examples[idx]
-        # Input: all tokens except last, Target: all tokens except first
-        return tokens[:-1], tokens[1:]
-
 def collate_fn(batch, pad_token_id):
-    inputs, targets = zip(*batch)
+    inputs = [torch.tensor(item["input_ids"], dtype=torch.long) for item in batch]
+    targets = [torch.tensor(item["labels"], dtype=torch.long) for item in batch]
     # Pad sequences to same length in batch using consistent padding token
     inputs = nn.utils.rnn.pad_sequence(inputs, batch_first=True, padding_value=pad_token_id)  # type: ignore
     targets = nn.utils.rnn.pad_sequence(targets, batch_first=True, padding_value=pad_token_id)  # type: ignore
@@ -109,19 +91,53 @@ def main():
 
     # Take first 64K stories for initial training
     subset_size = 65536
-    stories = [story["text"] for story in dataset.select(range(subset_size))] # type: ignore
-    print(f"Loaded {len(stories)} stories from TinyStories dataset")
+    dataset = dataset.select(range(subset_size))
+    print(f"Loaded {len(dataset)} stories from TinyStories dataset")
 
     # Show a sample story
+    sample_story = dataset[0]["text"]
     print(f"\nSample story:")
-    print(f"'{stories[0][:200]}...'")
-    print(f"Length: {len(stories[0])} characters")
+    print(f"'{sample_story[:200]}...'")
+    print(f"Length: {len(sample_story)} characters")
+
+    # Tokenize dataset in parallel with Hugging Face Datasets
+    def tokenize_batch(batch):
+        enc = tokenizer(
+            batch["text"],
+            truncation=True,
+            max_length=512,
+            return_attention_mask=False,
+        )
+
+        input_ids = []
+        labels = []
+        valid = []
+        for ids in enc["input_ids"]:
+            if len(ids) > 1:
+                input_ids.append(ids[:-1])
+                labels.append(ids[1:])
+                valid.append(True)
+            else:
+                input_ids.append([])
+                labels.append([])
+                valid.append(False)
+
+        return {"input_ids": input_ids, "labels": labels, "_is_valid": valid}
+
+    dataset = dataset.map(
+        tokenize_batch,
+        batched=True,
+        num_proc=os.cpu_count() or 1,
+        remove_columns=dataset.column_names,
+        desc="Tokenizing TinyStories",
+    )
+
+    dataset = dataset.filter(lambda example: example["_is_valid"])
+    dataset = dataset.remove_columns(["_is_valid"])
 
     # Dataset and dataloader
-    story_dataset = StoryDataset(stories, tokenizer)
-    # Create collate_fn with consistent padding token
     collate_with_padding = lambda batch: collate_fn(batch, pad_token_id=tokenizer.pad_token_id)
-    dataloader = DataLoader(story_dataset, batch_size=16, shuffle=True, collate_fn=collate_with_padding)
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, collate_fn=collate_with_padding)
 
     # Optimizer and mixed precision scaler
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
