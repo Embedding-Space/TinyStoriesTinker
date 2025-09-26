@@ -45,14 +45,16 @@ def main():
 
     training_args = TrainingArguments(
         output_dir="checkpoints",
-        overwrite_output_dir=True,
+        overwrite_output_dir=False,  # Don't overwrite so we can resume
         per_device_train_batch_size=16,
         gradient_accumulation_steps=1,
-        num_train_epochs=1,
+        num_train_epochs=30,         # Match our original 30 epochs
         learning_rate=1e-4,
         weight_decay=0.01,
         logging_steps=50,
-        save_strategy="epoch",
+        save_strategy="epoch",       # Save after each epoch
+        save_total_limit=5,          # Keep only last 5 checkpoints
+        resume_from_checkpoint=True, # Auto-resume from latest checkpoint
         report_to=[],
     )
 
